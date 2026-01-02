@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: Sample API
+  description: Judge0 Backend API Documentation
+  version: 1.0.0
+
+servers:
+  - url: https://judge0-be.vercel.app
+    description: API of Judge0 Backend
+
+paths:
+  /challenge/{id}:
+    get:
+      tags:
+        - Challenge
+      summary: Returns a challenge by ID
+      description: Fetches details of a coding challenge by its unique ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The unique identifier of the challenge
+          schema:
+            type: integer
+            example: 1
+      responses:
+        "200":
+          description: Challenge found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  challenge:
+                    type: object
+                    properties:
+                      id:
+                        type: integer
+                        example: 7
+                      title:
+                        type: string
+                        example: "Average Calculator"
+                      description:
+                        type: string
+                        example: "Given a list of numbers, compute the average and round it to two decimal places."
+                      sample_input:
+                        type: string
+                        example: "10 20 30 40 50"
+                      sample_output:
+                        type: string
+                        example: "30.00"
+                      created_at:
+                        type: string
+                        format: date-time
+                        example: "2025-12-05T15:28:13.845751Z"
+        "500":
+          description: Challenge may not exist
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "challenge may not exist"
+        default:
+          description: Unexpected error
+
+  /challenge/get:
+    get:
+      tags:
+        - Challenge
+      summary: Returns a paginated list of challenges
+      description: Fetches all coding challenges with pagination support
+      parameters:
+        - name: page
+          in: query
+          required: false
+          description: Page number to fetch (default is 1)
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          description: Number of challenges per page (default is 10)
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: List of challenges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  currentPage:
+                    type: integer
+                    example: 1
+                  totalPages:
+                    type: integer
+                    example: 1
+                  challenges:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                          example: 1
+                        title:
+                          type: string
+                          example: "Count Distinct Words"
+                        description:
+                          type: string
+                          example: "Write a program that reads a line of text and determines how many distinct words appear in it."
+                        sample_input:
+                          type: string
+                          example: "Apple banana apple Banana kiwi"
+                        sample_output:
+                          type: string
+                          example: "3"
+                        created_at:
+                          type: string
+                          format: date-time
+                          example: "2025-12-05T15:25:01.838825Z"
+        "500":
+          description: Could not fetch challenges
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "could not fetch challenges"
+        default:
+          description: Unexpected error
