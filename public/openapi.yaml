@@ -137,3 +137,4 @@ paths:
                     example: "could not fetch challenges"
         default:
           description: Unexpected error
+# TODO: add test docs

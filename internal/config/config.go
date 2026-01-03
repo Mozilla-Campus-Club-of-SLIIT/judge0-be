@@ -12,6 +12,7 @@ type Config struct {
 	SupabaseURL        string
 	SupabaseAnonKey    string
 	SupabaseServiceKey string
+	SecretKey          string
 }
 
 var (
@@ -37,6 +38,7 @@ func load() {
 		SupabaseURL:        must("SUPABASE_URL"),
 		SupabaseAnonKey:    must("SUPABASE_ANON_KEY"),
 		SupabaseServiceKey: must("SUPABASE_SERVICE_KEY"),
+		SecretKey:          must("SECRET_KEY"),
 	}
 }
 

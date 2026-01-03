@@ -3,8 +3,10 @@ package handlers
 import (
 	"fmt"
 	"log"
+	"net/http"
 
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/internal/repository"
+	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/internal/types"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,18 +16,16 @@ func GetChallengeByID(c *gin.Context) {
 
 	if err != nil {
 		log.Printf("Internal error while fetching challenge ID %s: %v", id, err)
-		c.JSON(500, gin.H{"error": "challenge may not exist"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "challenge may not exist"})
 		return
 	}
-
 	if challenge == nil {
 		log.Printf("Challenge not found with ID: %s", id)
-		c.JSON(404, gin.H{"error": "challenge not found"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "challenge not found"})
 		return
 	}
-
 	log.Printf("Returning challenge with ID: %s", id)
-	c.JSON(200, gin.H{"challenge": challenge})
+	c.JSON(http.StatusOK, gin.H{"challenge": challenge})
 }
 
 func GetChallenges(c *gin.Context) {
@@ -47,7 +47,7 @@ func GetChallenges(c *gin.Context) {
 	challenges, totalPages, err := repository.GetChallengesWithPagination(c.Request.Context(), page, pageSize)
 	if err != nil {
 		log.Printf("Error fetching challenges: %v", err)
-		c.JSON(500, gin.H{"error": "could not fetch challenges"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "could not fetch challenges"})
 		return
 	}
 	response := gin.H{
@@ -56,5 +56,37 @@ func GetChallenges(c *gin.Context) {
 		"challenges":  challenges,
 	}
 	log.Printf("Response body: %+v", response)
-	c.JSON(200, response)
+	c.JSON(http.StatusOK, response)
+}
+
+func TestChallenge(c *gin.Context) {
+	var req types.TestChallengeRequest
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		log.Printf("Failed to bind TestChallengeRequest: %v", err)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Invalid request body",
+			"details": err.Error(),
+		})
+		return
+	}
+
+	if req.ID == 0 || req.LangID == 0 || req.Code == "" || req.SampleInput == "" || req.SampleOutput == "" {
+		log.Printf("Validation failed for request: %+v", req)
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Missing required fields",
+			"details": "All fields (ID, LangID, Code, SampleInput, SampleOutput) must be provided",
+		})
+		return
+	}
+
+	log.Printf("Received TestChallengeRequest: %+v", req)
+
+	c.JSON(http.StatusOK, gin.H{
+		"id":            req.ID,
+		"lang_id":       req.LangID,
+		"code":          req.Code,
+		"sample_input":  req.SampleInput,
+		"sample_output": req.SampleOutput,
+	})
 }

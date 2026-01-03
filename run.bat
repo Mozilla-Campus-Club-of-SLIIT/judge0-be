@@ -1,0 +1,1 @@
+wgo run cmd/judge0-be/main.go

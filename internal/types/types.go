@@ -21,3 +21,11 @@ type Challenge struct {
 	SampleOutput string    `json:"sample_output"`
 	CreatedAt    time.Time `json:"created_at"`
 }
+
+type TestChallengeRequest struct {
+	ID           int    `json:"id"`
+	LangID       int    `json:"lang_id"`
+	Code         string `json:"code"`
+	SampleInput  string `json:"sample_input"`
+	SampleOutput string `json:"sample_output"`
+}
