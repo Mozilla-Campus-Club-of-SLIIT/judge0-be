@@ -136,6 +136,32 @@ func UpdateAllDSAChallengeStatusesHandler(c *gin.Context) {
 	})
 }
 
+func DeleteChallengeHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	deleted, err := repositories.DeleteChallengeByID(ctx, id)
+	if err != nil {
+		logger.Log.Error("DeleteChallengeHandler: failed to delete challenge", "id", id, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !deleted {
+		c.JSON(http.StatusNotFound, gin.H{"error": "challenge not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Challenge deleted",
+		"id":      id,
+	})
+}
+
 func GetJudge0SubmissionDetailsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	token := c.Param("token")
