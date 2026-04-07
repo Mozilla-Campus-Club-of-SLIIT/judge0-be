@@ -99,6 +99,43 @@ func UpdateChallengeStatusHandler(c *gin.Context) {
 	})
 }
 
+func UpdateAllDSAChallengeStatusesHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	status := c.Param("status")
+	if status == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
+		return
+	}
+
+	statusID, err := strconv.Atoi(status)
+	if err != nil || (statusID != 1 && statusID != 2) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1 (inactive) or 2 (active)"})
+		return
+	}
+
+	updatedCount, err := repositories.UpdateAllDSAChallengeStatuses(ctx, statusID)
+	if err != nil {
+		logger.Log.Error("UpdateAllDSAChallengeStatusesHandler: failed to update DSA challenge statuses", "status_id", statusID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	message := "All DSA challenge statuses updated"
+	if statusID == 1 {
+		message = "All DSA challenges deactivated"
+	}
+	if statusID == 2 {
+		message = "All DSA challenges activated"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       message,
+		"status":        statusID,
+		"updated_count": updatedCount,
+	})
+}
+
 func GetJudge0SubmissionDetailsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	token := c.Param("token")
