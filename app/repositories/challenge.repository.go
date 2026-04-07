@@ -13,6 +13,29 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+func DeleteChallengeByID(ctx context.Context, id string) (bool, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	cmdTag, err := pool.Exec(ctx,
+		"DELETE FROM challenges WHERE id = $1",
+		id,
+	)
+	if err != nil {
+		logger.Log.Error("DeleteChallengeByID: failed deleting challenge", "id", id, "error", err)
+		return false, err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		logger.Log.Warn("DeleteChallengeByID: challenge not found", "id", id)
+		return false, nil
+	}
+
+	logger.Log.Info("Challenge deleted", "id", id)
+	return true, nil
+}
+
 func GetLeaderboard(ctx context.Context, page, pageSize string) ([]types.LeaderboardUserType, int64, int64, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
