@@ -13,6 +13,6 @@ func main() {
 	database.Init()
 
 	app := server.NewRouter()
-	log.Println("Running local server on http://localhost:3000")
+	log.Println("Running local server on http://localhost:8000")
 	app.Run(":8000")
 }

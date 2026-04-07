@@ -192,6 +192,26 @@ func UpdateChallengeStatus(ctx context.Context, id string, statusID int) (bool, 
 	return true, nil
 }
 
+func UpdateAllDSAChallengeStatuses(ctx context.Context, statusID int) (int64, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	cmdTag, err := pool.Exec(ctx,
+		"UPDATE challenges SET status_id = $1 WHERE type_id = 1",
+		statusID,
+	)
+	if err != nil {
+		logger.Log.Error("UpdateAllDSAChallengeStatuses: update error", "status_id", statusID, "error", err)
+		return 0, err
+	}
+
+	affected := cmdTag.RowsAffected()
+	logger.Log.Info("All DSA challenge statuses updated", "status_id", statusID, "updated_count", affected)
+
+	return affected, nil
+}
+
 func GetMarksForChallenge(ctx context.Context, challengeId int) (int, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
