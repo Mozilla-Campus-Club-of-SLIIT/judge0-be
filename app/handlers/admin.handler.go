@@ -179,3 +179,25 @@ func GetJudge0SubmissionDetailsHandler(c *gin.Context) {
 
 	c.Data(http.StatusOK, "application/json", result)
 }
+
+func ToggleLeaderboardFreezeHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	frozen, err := repositories.ToggleLeaderboardFreeze(ctx)
+	if err != nil {
+		logger.Log.Error("ToggleLeaderboardFreezeHandler: failed to toggle leaderboard freeze", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	message := "Leaderboard is now live"
+	if frozen {
+		message = "Leaderboard is now frozen"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": message,
+		"setting": "leaderboard_freeze",
+		"value":   frozen,
+	})
+}
