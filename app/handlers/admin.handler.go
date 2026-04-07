@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"net/http"
+	"strconv"
 
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/logger"
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/repositories"
@@ -48,6 +49,53 @@ func GetAllDSAChallengesHandler(c *gin.Context) {
 		"challenges":  challenges,
 		"currentPage": currentPage,
 		"totalPages":  totalPages,
+	})
+}
+
+func UpdateChallengeStatusHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	id := c.Param("id")
+	if id == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "id is required"})
+		return
+	}
+
+	status := c.Param("status")
+	if status == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
+		return
+	}
+
+	statusID, err := strconv.Atoi(status)
+	if err != nil || (statusID != 1 && statusID != 2) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1 (inactive) or 2 (active)"})
+		return
+	}
+
+	updated, err := repositories.UpdateChallengeStatus(ctx, id, statusID)
+	if err != nil {
+		logger.Log.Error("UpdateChallengeStatusHandler: failed to update challenge status", "id", id, "status_id", statusID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	if !updated {
+		c.JSON(http.StatusNotFound, gin.H{"error": "challenge not found"})
+		return
+	}
+
+	message := "Challenge status updated"
+	if statusID == 1 {
+		message = "Challenge deactivated"
+	}
+	if statusID == 2 {
+		message = "Challenge activated"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": message,
+		"id":      id,
+		"status":  statusID,
 	})
 }
 
