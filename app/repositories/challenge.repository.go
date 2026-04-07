@@ -13,6 +13,17 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
+const leaderboardFreezeSetting = "leaderboard_freeze"
+
+var frozenLeaderboardUsers = []types.LeaderboardUserType{
+	{UserID: "mozilla-firefox", Name: "Firefox", XP: 100},
+	{UserID: "mozilla-thunderbird", Name: "Thunderbird", XP: 95},
+	{UserID: "mozilla-mdn", Name: "MDN Web Docs", XP: 90},
+	{UserID: "mozilla-rust", Name: "Rust", XP: 85},
+	{UserID: "mozilla-servo", Name: "Servo", XP: 80},
+	{UserID: "mozilla-relay", Name: "Firefox Relay", XP: 75},
+}
+
 func DeleteChallengeByID(ctx context.Context, id string) (bool, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
@@ -41,8 +52,27 @@ func GetLeaderboard(ctx context.Context, page, pageSize string) ([]types.Leaderb
 	ctx, cancel := utils.WithTimeout(ctx)
 	defer cancel()
 
-	var count int64
+	var frozen bool
 	err := pool.QueryRow(ctx,
+		`SELECT COALESCE(
+			(
+				SELECT value
+				FROM settings
+				WHERE setting = $1
+				ORDER BY id DESC
+				LIMIT 1
+			), false)`, leaderboardFreezeSetting).Scan(&frozen)
+	if err != nil {
+		logger.Log.Error("Error checking leaderboard freeze setting", "setting", leaderboardFreezeSetting, "error", err)
+		return nil, 0, 0, err
+	}
+
+	if frozen {
+		return getFrozenLeaderboard(page, pageSize)
+	}
+
+	var count int64
+	err = pool.QueryRow(ctx,
 		"SELECT count(*) FROM leaderboard").Scan(&count)
 	if err != nil {
 		logger.Log.Error("Error counting leaderboard entries", "error", err)
@@ -101,6 +131,47 @@ func GetLeaderboard(ctx context.Context, page, pageSize string) ([]types.Leaderb
 	}
 
 	logger.Log.Info("Fetched leaderboard", "count", len(users), "page", p, "totalPages", totalPages)
+	return users, p, totalPages, nil
+}
+
+func getFrozenLeaderboard(page, pageSize string) ([]types.LeaderboardUserType, int64, int64, error) {
+	ps, err := strconv.ParseInt(pageSize, 10, 64)
+	if err != nil || ps <= 0 {
+		logger.Log.Warn("Invalid pageSize for frozen leaderboard, defaulting to 10", "input", pageSize, "error", err)
+		ps = 10
+	}
+
+	p, err := strconv.ParseInt(page, 10, 64)
+	if err != nil || p <= 0 {
+		logger.Log.Warn("Invalid page for frozen leaderboard, defaulting to 1", "input", page, "error", err)
+		p = 1
+	}
+
+	count := int64(len(frozenLeaderboardUsers))
+	totalPages := (count + ps - 1) / ps
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if p > totalPages {
+		p = totalPages
+	}
+
+	offset := int((p - 1) * ps)
+	if offset < 0 {
+		offset = 0
+	}
+	if offset >= len(frozenLeaderboardUsers) {
+		return []types.LeaderboardUserType{}, p, totalPages, nil
+	}
+
+	end := offset + int(ps)
+	if end > len(frozenLeaderboardUsers) {
+		end = len(frozenLeaderboardUsers)
+	}
+
+	users := make([]types.LeaderboardUserType, 0, end-offset)
+	users = append(users, frozenLeaderboardUsers[offset:end]...)
+	logger.Log.Info("Fetched frozen leaderboard", "count", len(users), "page", p, "totalPages", totalPages)
 	return users, p, totalPages, nil
 }
 
