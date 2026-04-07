@@ -10,6 +10,7 @@ func AdminRoutes(r *gin.RouterGroup) {
 	challenge := r.Group("/admin")
 	{
 		challenge.GET("/submissions/dsa", middlewares.AuthMiddleware("Codenight host"), handlers.GetDSASubmissionResultsHandler)
+		challenge.GET("/dsa/challenges", middlewares.AuthMiddleware("Codenight host"), handlers.GetAllDSAChallengesHandler)
 		challenge.GET("/submissions/dsa/:token/details", middlewares.AuthMiddleware("Codenight host"), handlers.GetJudge0SubmissionDetailsHandler)
 	}
 }
