@@ -175,6 +175,43 @@ func getFrozenLeaderboard(page, pageSize string) ([]types.LeaderboardUserType, i
 	return users, p, totalPages, nil
 }
 
+func ToggleLeaderboardFreeze(ctx context.Context) (bool, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		logger.Log.Error("ToggleLeaderboardFreeze: failed to start transaction", "error", err)
+		return false, err
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	var next bool
+	err = tx.QueryRow(ctx,
+		`UPDATE settings
+		 SET value = NOT COALESCE(value, false)
+		 WHERE setting = $1
+		 RETURNING value`, leaderboardFreezeSetting).Scan(&next)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			err = errors.New("leaderboard_freeze setting not found")
+		}
+		logger.Log.Error("ToggleLeaderboardFreeze: failed updating setting", "setting", leaderboardFreezeSetting, "error", err)
+		return false, err
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		logger.Log.Error("ToggleLeaderboardFreeze: failed committing transaction", "error", err)
+		return false, err
+	}
+
+	logger.Log.Info("ToggleLeaderboardFreeze: setting updated", "setting", leaderboardFreezeSetting, "value", next)
+	return next, nil
+}
+
 func GetAllChallenges(ctx context.Context, limit, pageSize string) ([]types.ChallengesType, int64, int64, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
