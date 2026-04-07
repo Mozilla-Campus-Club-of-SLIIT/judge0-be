@@ -175,6 +175,74 @@ func getFrozenLeaderboard(page, pageSize string) ([]types.LeaderboardUserType, i
 	return users, p, totalPages, nil
 }
 
+func GetLiveLeaderboard(ctx context.Context, page, pageSize string) ([]types.LeaderboardUserType, int64, int64, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var count int64
+	err := pool.QueryRow(ctx,
+		"SELECT count(*) FROM leaderboard").Scan(&count)
+	if err != nil {
+		logger.Log.Error("GetLiveLeaderboard: error counting leaderboard entries", "error", err)
+		return nil, 0, 0, err
+	}
+
+	ps, err := strconv.ParseInt(pageSize, 10, 64)
+	if err != nil || ps <= 0 {
+		logger.Log.Warn("GetLiveLeaderboard: invalid pageSize, defaulting to 10", "input", pageSize, "error", err)
+		ps = 10
+	}
+
+	p, err := strconv.ParseInt(page, 10, 64)
+	if err != nil || p <= 0 {
+		logger.Log.Warn("GetLiveLeaderboard: invalid page, defaulting to 1", "input", page, "error", err)
+		p = 1
+	}
+
+	totalPages := (count + ps - 1) / ps
+	if p > totalPages && totalPages > 0 {
+		p = totalPages
+	}
+
+	offset := (p - 1) * ps
+
+	rows, err := pool.Query(ctx,
+		`SELECT l.user_id, u.name, l.marks
+	 FROM leaderboard l
+	 JOIN users u ON u.user_id = l.user_id
+	 ORDER BY l.marks DESC, l.last_updates ASC
+	 LIMIT $1 OFFSET $2`,
+		ps, offset)
+	if err != nil {
+		logger.Log.Error("GetLiveLeaderboard: query error", "error", err)
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+
+	users := []types.LeaderboardUserType{}
+	for rows.Next() {
+		var user types.LeaderboardUserType
+		if err := rows.Scan(
+			&user.UserID,
+			&user.Name,
+			&user.XP,
+		); err != nil {
+			logger.Log.Error("GetLiveLeaderboard: scan error", "error", err)
+			return nil, 0, 0, err
+		}
+		users = append(users, user)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Log.Error("GetLiveLeaderboard: rows error", "error", err)
+		return nil, 0, 0, err
+	}
+
+	logger.Log.Info("Fetched live leaderboard", "count", len(users), "page", p, "totalPages", totalPages)
+	return users, p, totalPages, nil
+}
+
 func ToggleLeaderboardFreeze(ctx context.Context) (bool, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)

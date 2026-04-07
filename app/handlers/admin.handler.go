@@ -52,6 +52,27 @@ func GetAllDSAChallengesHandler(c *gin.Context) {
 	})
 }
 
+func GetLiveLeaderboardAdminHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	page := c.DefaultQuery("page", "1")
+	pageSize := c.DefaultQuery("pageSize", "10")
+
+	users, currentPage, totalPages, err := repositories.GetLiveLeaderboard(ctx, page, pageSize)
+	if err != nil {
+		logger.Log.Error("GetLiveLeaderboardAdminHandler: failed to get live leaderboard", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"currentPage": currentPage,
+		"totalPages":  totalPages,
+		"users":       users,
+	})
+}
+
 func UpdateChallengeStatusHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
