@@ -168,6 +168,30 @@ func GetChallengeType(ctx context.Context, id string) (int, error) {
 	return challengeType, err
 }
 
+func UpdateChallengeStatus(ctx context.Context, id string, statusID int) (bool, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	cmdTag, err := pool.Exec(ctx,
+		"UPDATE challenges SET status_id = $2 WHERE id = $1",
+		id,
+		statusID,
+	)
+	if err != nil {
+		logger.Log.Error("UpdateChallengeStatus: update error", "id", id, "status_id", statusID, "error", err)
+		return false, err
+	}
+
+	if cmdTag.RowsAffected() == 0 {
+		logger.Log.Warn("UpdateChallengeStatus: challenge not found", "id", id, "status_id", statusID)
+		return false, nil
+	}
+
+	logger.Log.Info("Challenge status updated", "id", id, "status_id", statusID)
+	return true, nil
+}
+
 func GetMarksForChallenge(ctx context.Context, challengeId int) (int, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
@@ -387,7 +411,7 @@ func GetAllDSAChallengesWithTestCases(ctx context.Context, page, pageSize string
 
 	var count int64
 	err := pool.QueryRow(ctx,
-		"SELECT count(*) FROM get_dsa_challenges_view WHERE status_id = 2",
+		"SELECT count(*) FROM get_dsa_challenges_view",
 	).Scan(&count)
 	if err != nil {
 		logger.Log.Error("GetAllDSAChallengesWithTestCases: count error", "error", err)
@@ -417,7 +441,6 @@ func GetAllDSAChallengesWithTestCases(ctx context.Context, page, pageSize string
 		`WITH paged AS (
 			SELECT id, created_at, title, description, marks, type_id, status_id, type, status, sample_input, sample_output, note
 			FROM get_dsa_challenges_view
-			WHERE status_id = 2
 			ORDER BY id DESC
 			LIMIT $1 OFFSET $2
 		)

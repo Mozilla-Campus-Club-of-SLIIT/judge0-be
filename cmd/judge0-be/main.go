@@ -14,5 +14,5 @@ func main() {
 
 	app := server.NewRouter()
 	log.Println("Running local server on http://localhost:3000")
-	app.Run(":3000")
+	app.Run(":8000")
 }
