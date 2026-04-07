@@ -2,6 +2,7 @@ package repositories
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strconv"
 
@@ -377,6 +378,126 @@ func GetDSAChallengeTestCases(ctx context.Context, challengeID int) ([]types.DSA
 	}
 	logger.Log.Info("Fetched DSA challenge test cases", "challenge_id", challengeID, "count", len(testCases))
 	return testCases, nil
+}
+
+func GetAllDSAChallengesWithTestCases(ctx context.Context, page, pageSize string) ([]types.DSAChallengeWithTestCasesType, int64, int64, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var count int64
+	err := pool.QueryRow(ctx,
+		"SELECT count(*) FROM get_dsa_challenges_view WHERE status_id = 2",
+	).Scan(&count)
+	if err != nil {
+		logger.Log.Error("GetAllDSAChallengesWithTestCases: count error", "error", err)
+		return nil, 0, 0, err
+	}
+
+	ps, err := strconv.ParseInt(pageSize, 10, 64)
+	if err != nil || ps <= 0 {
+		logger.Log.Warn("Invalid pageSize, defaulting to 10", "input", pageSize, "error", err)
+		ps = 10
+	}
+
+	p, err := strconv.ParseInt(page, 10, 64)
+	if err != nil || p <= 0 {
+		logger.Log.Warn("Invalid page, defaulting to 1", "input", page, "error", err)
+		p = 1
+	}
+
+	totalPages := (count + ps - 1) / ps
+	if p > totalPages && totalPages > 0 {
+		p = totalPages
+	}
+
+	offset := (p - 1) * ps
+
+	rows, err := pool.Query(ctx,
+		`WITH paged AS (
+			SELECT id, created_at, title, description, marks, type_id, status_id, type, status, sample_input, sample_output, note
+			FROM get_dsa_challenges_view
+			WHERE status_id = 2
+			ORDER BY id DESC
+			LIMIT $1 OFFSET $2
+		)
+		SELECT
+			p.id,
+			p.created_at,
+			p.title,
+			p.description,
+			p.marks,
+			p.type_id,
+			p.status_id,
+			p.type,
+			p.status,
+			p.sample_input,
+			p.sample_output,
+			p.note,
+			COALESCE(
+				json_agg(
+					json_build_object(
+						'id', tc.id,
+						'created_at', tc.created_at,
+						'challenge_id', tc.challenge_id,
+						'test_input', tc.test_input,
+						'test_output', tc.test_output
+					)
+					ORDER BY tc.id ASC
+				) FILTER (WHERE tc.id IS NOT NULL),
+				'[]'::json
+			) AS test_cases
+		FROM paged p
+		LEFT JOIN dsa_test_cases tc ON tc.challenge_id = p.id
+		GROUP BY p.id, p.created_at, p.title, p.description, p.marks, p.type_id, p.status_id, p.type, p.status, p.sample_input, p.sample_output, p.note
+		ORDER BY p.id DESC`,
+		ps, offset,
+	)
+	if err != nil {
+		logger.Log.Error("GetAllDSAChallengesWithTestCases: query error", "error", err)
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+
+	challenges := []types.DSAChallengeWithTestCasesType{}
+
+	for rows.Next() {
+		var challenge types.DSAChallengeWithTestCasesType
+		var testCasesJSON []byte
+
+		if err := rows.Scan(
+			&challenge.ID,
+			&challenge.CreatedAt,
+			&challenge.Title,
+			&challenge.Description,
+			&challenge.Marks,
+			&challenge.TypeID,
+			&challenge.StatusID,
+			&challenge.Type,
+			&challenge.Status,
+			&challenge.SampleInput,
+			&challenge.SampleOutput,
+			&challenge.Note,
+			&testCasesJSON,
+		); err != nil {
+			logger.Log.Error("GetAllDSAChallengesWithTestCases: scan error", "error", err)
+			return nil, 0, 0, err
+		}
+
+		if err := json.Unmarshal(testCasesJSON, &challenge.TestCases); err != nil {
+			logger.Log.Error("GetAllDSAChallengesWithTestCases: unmarshal test cases error", "challenge_id", challenge.ID, "error", err)
+			return nil, 0, 0, err
+		}
+		challenges = append(challenges, challenge)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Log.Error("GetAllDSAChallengesWithTestCases: rows error", "error", err)
+		return nil, 0, 0, err
+	}
+
+	logger.Log.Info("Fetched DSA challenges with test cases", "count", len(challenges), "page", p, "totalPages", totalPages)
+	return challenges, p, totalPages, nil
 }
 
 func GetDSATestCaseCount(ctx context.Context, challengeID int) (int64, error) {

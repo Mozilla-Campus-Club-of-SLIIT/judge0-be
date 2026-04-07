@@ -30,6 +30,27 @@ func GetDSASubmissionResultsHandler(c *gin.Context) {
 	})
 }
 
+func GetAllDSAChallengesHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	page := c.DefaultQuery("page", "1")
+	pageSize := c.DefaultQuery("pageSize", "10")
+
+	challenges, currentPage, totalPages, err := repositories.GetAllDSAChallengesWithTestCases(ctx, page, pageSize)
+	if err != nil {
+		logger.Log.Error("GetAllDSAChallengesHandler: failed to get DSA challenges", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"challenges":  challenges,
+		"currentPage": currentPage,
+		"totalPages":  totalPages,
+	})
+}
+
 func GetJudge0SubmissionDetailsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	token := c.Param("token")
