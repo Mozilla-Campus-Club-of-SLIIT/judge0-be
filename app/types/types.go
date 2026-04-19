@@ -52,7 +52,6 @@ type LinuxChallengesType struct {
 	Type        string  `json:"type"`
 	Status      string  `json:"status"`
 	Note        *string `json:"note"`
-	Flag        *string `json:"flag"`
 }
 
 type DSAChallengeWithTestCasesType struct {
