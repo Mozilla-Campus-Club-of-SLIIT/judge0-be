@@ -10,11 +10,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-const (
-	statusRequiredError = "status is required"
-	statusInvalidError  = "status must be 1 (inactive) or 2 (active)"
-)
-
 func GetDSASubmissionResultsHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	page := c.DefaultQuery("page", "1")
@@ -57,6 +52,27 @@ func GetAllDSAChallengesHandler(c *gin.Context) {
 	})
 }
 
+func GetLiveLeaderboardAdminHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	page := c.DefaultQuery("page", "1")
+	pageSize := c.DefaultQuery("pageSize", "10")
+
+	users, currentPage, totalPages, err := repositories.GetLiveLeaderboard(ctx, page, pageSize)
+	if err != nil {
+		logger.Log.Error("GetLiveLeaderboardAdminHandler: failed to get live leaderboard", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"currentPage": currentPage,
+		"totalPages":  totalPages,
+		"users":       users,
+	})
+}
+
 func GetAllLinuxChallengesHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	page := c.DefaultQuery("page", "1")
@@ -88,13 +104,13 @@ func UpdateChallengeStatusHandler(c *gin.Context) {
 
 	status := c.Param("status")
 	if status == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": statusRequiredError})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
 		return
 	}
 
 	statusID, err := strconv.Atoi(status)
 	if err != nil || (statusID != 1 && statusID != 2) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": statusInvalidError})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1 (inactive) or 2 (active)"})
 		return
 	}
 
@@ -130,13 +146,13 @@ func UpdateAllDSAChallengeStatusesHandler(c *gin.Context) {
 
 	status := c.Param("status")
 	if status == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": statusRequiredError})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
 		return
 	}
 
 	statusID, err := strconv.Atoi(status)
 	if err != nil || (statusID != 1 && statusID != 2) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": statusInvalidError})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1 (inactive) or 2 (active)"})
 		return
 	}
 
@@ -167,13 +183,13 @@ func UpdateAllLinuxChallengeStatusesHandler(c *gin.Context) {
 
 	status := c.Param("status")
 	if status == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": statusRequiredError})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
 		return
 	}
 
 	statusID, err := strconv.Atoi(status)
 	if err != nil || (statusID != 1 && statusID != 2) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": statusInvalidError})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1 (inactive) or 2 (active)"})
 		return
 	}
 
