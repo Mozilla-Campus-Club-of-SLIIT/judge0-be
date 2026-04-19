@@ -75,7 +75,7 @@ collection:
         meta:
           id: req_a5f23c5694fa4e348003475876711716
           created: 1771446506869
-          modified: 1774291892180
+          modified: 1775581630306
           isPrivate: false
           description: ""
           sortKey: -1771445871658
@@ -94,7 +94,7 @@ collection:
               "note": "* [1,3] overlaps with [2,6]\n* They merge into [1,6]\n* The others do not overlap",
               "test_cases": [
                 { "test_input": "[[1,3],[2,6],[8,10],[15,18]]", "test_output": "[[1,6],[8,10],[15,18]]" },
-                { "test_input": "[[1,4],[4,5]]", "test_output": "[[1,5]]" }
+                { "test_input": "", "test_output": "" }
               ]
             }
         headers:
@@ -276,23 +276,59 @@ collection:
         meta:
           id: req_591b76d93dd64f909ee57bab8c316bb8
           created: 1774877219286
-          modified: 1774966694668
+          modified: 1775582933495
           isPrivate: false
           description: ""
           sortKey: -1770970345042.25
         method: GET
         parameters:
           - name: page
-            value: "2"
+            value: "1"
+            description: ""
+            disabled: true
+          - name: pageSize
+            value: "3"
+            description: ""
+            disabled: true
+        headers:
+          - name: User-Agent
+            value: insomnia/12.4.0
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.url }}/challenge/6/submissions"
+        name: get submission by user and id
+        meta:
+          id: req_8b7ea0dd6adb4468b70964aff6575cd7
+          created: 1775558198465
+          modified: 1775558285456
+          isPrivate: false
+          description: ""
+          sortKey: -1770891090689.625
+        method: GET
+        parameters:
+          - name: page
+            value: "1"
             description: ""
             disabled: false
           - name: pageSize
-            value: "1"
+            value: "10"
             description: ""
             disabled: false
         headers:
           - name: User-Agent
             value: insomnia/12.4.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
             description: ""
             disabled: false
         settings:
@@ -448,7 +484,7 @@ collection:
     meta:
       id: fld_96eb2916ea8449caa6cf87aecd1523d8
       created: 1774899648705
-      modified: 1774899652181
+      modified: 1775586190765
       sortKey: -1774899648705
       description: ""
     children:
@@ -488,12 +524,13 @@ collection:
             send: true
             store: true
           rebuildPath: true
-      - url: localhost:8080/api/admin/submissions/dsa/cb10c5ef-d0e7-467d-bd6a-1fe0688c41a0/details
+      - url: "{{ _.url
+          }}/admin/submissions/dsa/cb10c5ef-d0e7-467d-bd6a-1fe0688c41a0/details"
         name: get dsa submission
         meta:
           id: req_1db908c5a2e44450a1a2072dd6ff6f12
           created: 1774900285278
-          modified: 1775112700180
+          modified: 1775558544356
           isPrivate: false
           description: ""
           sortKey: -1774899669572
@@ -524,14 +561,194 @@ collection:
             send: true
             store: true
           rebuildPath: true
+      - url: "{{ _.url }}/admin/dsa/challenges"
+        name: get dsa challenges
+        meta:
+          id: req_9d74f0d9aaaf4ac3ae11b04c52e48fce
+          created: 1775559677678
+          modified: 1775564944549
+          isPrivate: false
+          description: ""
+          sortKey: -1774803398908.5
+        method: GET
+        parameters:
+          - name: page
+            value: "1"
+            description: ""
+            disabled: false
+          - name: pageSize
+            value: "10"
+            description: ""
+            disabled: false
+        headers:
+          - name: User-Agent
+            value: insomnia/12.4.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.url }}/admin/challenges/21/1"
+        name: change status
+        meta:
+          id: req_2877cc71b105446b816b82b04766252b
+          created: 1775563009942
+          modified: 1775564912224
+          isPrivate: false
+          description: ""
+          sortKey: -1774755263626.75
+        method: PATCH
+        parameters:
+          - name: page
+            value: "1"
+            description: ""
+            disabled: true
+          - name: pageSize
+            value: "2"
+            description: ""
+            disabled: true
+        headers:
+          - name: User-Agent
+            value: insomnia/12.4.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.url }}/admin/dsa/challenges/2"
+        name: change status all dsa
+        meta:
+          id: req_e737143e05d847a8afd11fef068c875d
+          created: 1775567622808
+          modified: 1775567865671
+          isPrivate: false
+          description: ""
+          sortKey: -1774731195985.875
+        method: PATCH
+        headers:
+          - name: User-Agent
+            value: insomnia/12.4.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.url }}/admin/challenges/27"
+        name: delete challenge
+        meta:
+          id: req_bc970a86281c4f52a8399b20ed200fb9
+          created: 1775581278119
+          modified: 1775582037162
+          isPrivate: false
+          description: ""
+          sortKey: -1775581278119
+        method: DELETE
+        headers:
+          - name: User-Agent
+            value: insomnia/12.5.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.url }}/admin/leaderboard/toggle"
+        name: toggle leaderboard
+        meta:
+          id: req_ed7d5154c587478f868df7d1dbf775e7
+          created: 1775584725382
+          modified: 1775584801184
+          isPrivate: false
+          description: ""
+          sortKey: -1774731195885.875
+        method: PATCH
+        headers:
+          - name: User-Agent
+            value: insomnia/12.5.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
+      - url: "{{ _.url }}/admin/leaderboard/get"
+        name: get live leaderboard
+        meta:
+          id: req_4a21a817262341b093b1b948ac43971d
+          created: 1775586206686
+          modified: 1775586316166
+          isPrivate: false
+          description: ""
+          sortKey: -1774779331267.625
+        method: GET
+        headers:
+          - name: User-Agent
+            value: insomnia/12.5.0
+            description: ""
+            disabled: false
+          - name: Authorization
+            value: Bearer {{ _.token }}
+            description: ""
+            disabled: false
+        settings:
+          renderRequestBody: true
+          encodeUrl: true
+          followRedirects: global
+          cookies:
+            send: true
+            store: true
+          rebuildPath: true
 cookieJar:
   name: Default Jar
   meta:
     id: jar_337cfed8dadc5b57a74e19d3b03405ffcb0d6df1
     created: 1767255661430
-    modified: 1775109778315
+    modified: 1775586300875
   cookies:
-    - id: caf6fc15-369f-4929-9b87-ac9087b27b56
+    - id: 4d6702bd-fd7d-4c03-90db-5f576d9cb306
       key: ""
       value: ""
       domain: accounts.sliitmozilla.org
@@ -540,9 +757,9 @@ cookieJar:
       httpOnly: true
       hostOnly: true
       pathIsDefault: true
-    - id: 7ff11525-954c-487b-a415-56c5ae95079f
+    - id: a00fe859-075b-4800-9b25-6f0c4025d20f
       key: refreshToken
-      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3Nzc3MDE3ODMsImlhdCI6MTc3NTEwOTc4MywiaWQiOiI3ZWY2MjRlMi03OTBjLTQ2OGMtOTFjNi1iZjk3ZDcyMzI2MjAifQ.WGTa5hYL0WEDxIqeE-rF4yGI05r9ngUt4cWhKvEiKwc
+      value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzgxNzgzMDEsImlhdCI6MTc3NTU4NjMwMSwiaWQiOiI3ZWY2MjRlMi03OTBjLTQ2OGMtOTFjNi1iZjk3ZDcyMzI2MjAifQ.ryKBI0WuVzie9_sFoHRXOQginFFU-qnxKYCXf1QtWsw
       domain: accounts.sliitmozilla.org
       path: /api
       secure: false
@@ -554,9 +771,9 @@ environments:
   meta:
     id: env_337cfed8dadc5b57a74e19d3b03405ffcb0d6df1
     created: 1767255661425
-    modified: 1774966604246
+    modified: 1775583396757
     isPrivate: false
   data:
-    url: https://judge0-be.vercel.app/api
     token: "{% response 'body', 'req_e1c90aed7277438cba8868b76cced351',
       'b64::JC5kYXRhLnRva2Vu::46b', 'never', 60 %}"
+    url: localhost:8000/api
