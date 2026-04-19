@@ -454,6 +454,35 @@ func GetDSAChallenge(ctx context.Context, id string) (types.DSAChallengesType, e
 	return challenge, err
 }
 
+func GetLinuxChallenge(ctx context.Context, id string) (types.LinuxChallengesType, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var challenge types.LinuxChallengesType
+	err := pool.QueryRow(ctx,
+		`SELECT id, created_at, title, description, type_id, status_id, marks, type, status, note, flag
+			FROM get_linux_challenges_view
+			WHERE id = $1`, id).Scan(
+		&challenge.ID,
+		&challenge.CreatedAt,
+		&challenge.Title,
+		&challenge.Description,
+		&challenge.TypeID,
+		&challenge.StatusID,
+		&challenge.Marks,
+		&challenge.Type,
+		&challenge.Status,
+		&challenge.Note,
+		&challenge.Flag,
+	)
+	if err != nil {
+		logger.Log.Error("GetLinuxChallenge error", "id", id, "error", err)
+	}
+
+	return challenge, err
+}
+
 func AddDSAChallenge(ctx context.Context, challenge types.AddDSAChallengeRequestType) (int, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)

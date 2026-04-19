@@ -85,6 +85,21 @@ func GetChallengeByIdHandler(c *gin.Context) {
 			"challenge": dsaChallenge,
 		})
 		return
+	case 3:
+		linuxChallenge, err := repositories.GetLinuxChallenge(ctx, id)
+		if err != nil {
+			logger.Log.Error("Failed to get Linux challenge", "id", id, "error", err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": err.Error(),
+			})
+			return
+		}
+		logger.Log.Info("Fetched Linux challenge", "id", id)
+
+		c.JSON(http.StatusOK, gin.H{
+			"challenge": linuxChallenge,
+		})
+		return
 	}
 
 	logger.Log.Warn("Challenge not found", "id", id)
