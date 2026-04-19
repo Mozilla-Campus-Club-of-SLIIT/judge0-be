@@ -17,6 +17,7 @@ func ChallengeRoutes(r *gin.RouterGroup) {
 		challenge.POST("/add", middlewares.AuthMiddleware("Codenight host"), handlers.AddChallengeHandler)
 		challenge.POST("/test", middlewares.AuthMiddleware(), handlers.TestDSAChallengeHandler)
 		challenge.POST("/submit/dsa", middlewares.AuthMiddleware(), handlers.SubmitDSAChallengeHandler)
+		challenge.POST("/submit/linux", middlewares.AuthMiddleware(), handlers.SubmitLinuxChallengeHandler)
 		challenge.POST("/evaluate/dsa/:id", handlers.EvaluateDSAChallengeHandler)
 		challenge.PUT("/evaluate/dsa/:id", handlers.EvaluateDSAChallengeHandler)
 	}

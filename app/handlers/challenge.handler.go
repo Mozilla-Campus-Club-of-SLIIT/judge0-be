@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/logger"
@@ -413,4 +414,66 @@ func GetUserChallengeSubmissionsHandler(c *gin.Context) {
 		ChallengeID: challengeID,
 		Submissions: submissions,
 	})
+}
+
+func SubmitLinuxChallengeHandler(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	var req types.SubmitLinuxChallengeRequestType
+	if err := c.ShouldBindJSON(&req); err != nil {
+		logger.Log.Error("SubmitLinuxChallengeHandler: invalid request", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		return
+	}
+
+	challengeIDStr := strconv.Itoa(req.ChallengeID)
+	ctx := c.Request.Context()
+
+	alreadySubmitted, err := repositories.CheckLinuxSubmissionExists(ctx, userID.(string), challengeIDStr)
+	if err != nil {
+		logger.Log.Error("SubmitLinuxChallengeHandler: check submission error", "user_id", userID, "challenge_id", challengeIDStr, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check submission"})
+		return
+	}
+
+	if alreadySubmitted {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"is_correct": false,
+			"message":    "You have already submitted for this challenge",
+		})
+		return
+	}
+
+	correctFlag, marks, err := repositories.GetLinuxChallengeFlag(ctx, challengeIDStr)
+	if err != nil {
+		logger.Log.Error("SubmitLinuxChallengeHandler: get flag error", "challenge_id", challengeIDStr, "error", err)
+		c.JSON(http.StatusNotFound, gin.H{"error": "Challenge not found"})
+		return
+	}
+
+	isCorrect := req.Flag == correctFlag
+
+	err = repositories.SubmitLinuxChallenge(ctx, userID.(string), challengeIDStr, isCorrect, marks)
+	if err != nil {
+		logger.Log.Error("SubmitLinuxChallengeHandler: submit error", "user_id", userID, "challenge_id", challengeIDStr, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit challenge"})
+		return
+	}
+
+	response := types.LinuxSubmissionResponseType{
+		IsCorrect: isCorrect,
+	}
+
+	if isCorrect {
+		response.Message = "Correct! You earned " + strconv.Itoa(marks) + " marks"
+		response.Marks = marks
+	} else {
+		response.Message = "Incorrect flag"
+	}
+
+	c.JSON(http.StatusOK, response)
 }

@@ -1473,3 +1473,92 @@ func GetUserChallengeSubmissions(ctx context.Context, challengeID string, userID
 	logger.Log.Info("Fetched user challenge submissions", "challenge_id", challengeID, "user_id", userID, "count", len(submissions))
 	return submissions, nil
 }
+
+func GetLinuxChallengeFlag(ctx context.Context, challengeID string) (string, int, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var flag string
+	var marks int
+	err := pool.QueryRow(ctx,
+		`SELECT lc.flag, c.marks
+		 FROM linux_challenges lc
+		 JOIN challenges c ON c.id = lc.challenge_id
+		 WHERE lc.challenge_id = $1`,
+		challengeID).Scan(&flag, &marks)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			logger.Log.Warn("GetLinuxChallengeFlag: challenge not found", "challenge_id", challengeID)
+			return "", 0, errors.New("challenge not found")
+		}
+		logger.Log.Error("GetLinuxChallengeFlag: query error", "challenge_id", challengeID, "error", err)
+		return "", 0, err
+	}
+
+	return flag, marks, nil
+}
+
+func CheckLinuxSubmissionExists(ctx context.Context, userID, challengeID string) (bool, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var exists bool
+	err := pool.QueryRow(ctx,
+		`SELECT EXISTS(
+			SELECT 1 FROM linux_submissions 
+			WHERE user_id = $1 AND challenge_id = $2
+		)`,
+		userID, challengeID).Scan(&exists)
+	if err != nil {
+		logger.Log.Error("CheckLinuxSubmissionExists: query error", "user_id", userID, "challenge_id", challengeID, "error", err)
+		return false, err
+	}
+
+	return exists, nil
+}
+
+func SubmitLinuxChallenge(ctx context.Context, userID, challengeID string, isCorrect bool, marks int) error {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		logger.Log.Error("SubmitLinuxChallenge: failed to start transaction", "error", err)
+		return err
+	}
+	defer func() {
+		_ = tx.Rollback(ctx)
+	}()
+
+	_, err = tx.Exec(ctx,
+		`INSERT INTO linux_submissions (user_id, challenge_id, is_pass)
+		 VALUES ($1, $2, $3)`,
+		userID, challengeID, isCorrect)
+	if err != nil {
+		logger.Log.Error("SubmitLinuxChallenge: failed to insert submission", "user_id", userID, "challenge_id", challengeID, "error", err)
+		return err
+	}
+
+	if isCorrect {
+		_, err = tx.Exec(ctx,
+			`INSERT INTO leaderboard (user_id, marks)
+			 VALUES ($1, $2)
+			 ON CONFLICT (user_id) DO UPDATE SET marks = leaderboard.marks + $2, last_updates = now()`,
+			userID, marks)
+		if err != nil {
+			logger.Log.Error("SubmitLinuxChallenge: failed to update leaderboard", "user_id", userID, "error", err)
+			return err
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		logger.Log.Error("SubmitLinuxChallenge: failed to commit transaction", "error", err)
+		return err
+	}
+
+	logger.Log.Info("Linux challenge submitted", "user_id", userID, "challenge_id", challengeID, "is_correct", isCorrect)
+	return nil
+}

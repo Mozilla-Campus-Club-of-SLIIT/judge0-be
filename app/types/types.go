@@ -106,6 +106,17 @@ type AddLinuxChallengeRequestType struct {
 	Flag        string  `json:"flag"`
 }
 
+type SubmitLinuxChallengeRequestType struct {
+	ChallengeID int    `json:"challenge_id"`
+	Flag        string `json:"flag"`
+}
+
+type LinuxSubmissionResponseType struct {
+	IsCorrect bool   `json:"is_correct"`
+	Message   string `json:"message"`
+	Marks     int    `json:"marks,omitempty"`
+}
+
 type DSATestCaseType struct {
 	TestInput  string `json:"test_input"`
 	TestOutput string `json:"test_output"`
