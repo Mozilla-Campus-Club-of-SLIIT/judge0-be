@@ -73,6 +73,27 @@ func GetLiveLeaderboardAdminHandler(c *gin.Context) {
 	})
 }
 
+func GetAllLinuxChallengesHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	page := c.DefaultQuery("page", "1")
+	pageSize := c.DefaultQuery("pageSize", "10")
+
+	challenges, currentPage, totalPages, err := repositories.GetAllLinuxChallenges(ctx, page, pageSize)
+	if err != nil {
+		logger.Log.Error("GetAllLinuxChallengesHandler: failed to get Linux challenges", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"challenges":  challenges,
+		"currentPage": currentPage,
+		"totalPages":  totalPages,
+	})
+}
+
 func UpdateChallengeStatusHandler(c *gin.Context) {
 	ctx := c.Request.Context()
 	id := c.Param("id")
@@ -148,6 +169,43 @@ func UpdateAllDSAChallengeStatusesHandler(c *gin.Context) {
 	}
 	if statusID == 2 {
 		message = "All DSA challenges activated"
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message":       message,
+		"status":        statusID,
+		"updated_count": updatedCount,
+	})
+}
+
+func UpdateAllLinuxChallengeStatusesHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	status := c.Param("status")
+	if status == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status is required"})
+		return
+	}
+
+	statusID, err := strconv.Atoi(status)
+	if err != nil || (statusID != 1 && statusID != 2) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "status must be 1 (inactive) or 2 (active)"})
+		return
+	}
+
+	updatedCount, err := repositories.UpdateAllLinuxChallengeStatuses(ctx, statusID)
+	if err != nil {
+		logger.Log.Error("UpdateAllLinuxChallengeStatusesHandler: failed to update Linux challenge statuses", "status_id", statusID, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	message := "All Linux challenge statuses updated"
+	if statusID == 1 {
+		message = "All Linux challenges deactivated"
+	}
+	if statusID == 2 {
+		message = "All Linux challenges activated"
 	}
 
 	c.JSON(http.StatusOK, gin.H{

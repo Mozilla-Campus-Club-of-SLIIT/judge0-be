@@ -41,6 +41,33 @@ type DSAChallengesType struct {
 	Marks        int     `json:"marks"`
 }
 
+type LinuxChallengesType struct {
+	ID          int     `json:"id"`
+	CreatedAt   string  `json:"created_at"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	TypeID      int     `json:"type_id"`
+	StatusID    int     `json:"status_id"`
+	Marks       int     `json:"marks"`
+	Type        string  `json:"type"`
+	Status      string  `json:"status"`
+	Note        *string `json:"note"`
+}
+
+type AdminLinuxChallengesType struct {
+	ID          int     `json:"id"`
+	CreatedAt   string  `json:"created_at"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	TypeID      int     `json:"type_id"`
+	StatusID    int     `json:"status_id"`
+	Marks       int     `json:"marks"`
+	Type        string  `json:"type"`
+	Status      string  `json:"status"`
+	Note        *string `json:"note"`
+	Flag        *string `json:"flag"`
+}
+
 type DSAChallengeWithTestCasesType struct {
 	ID           int                    `json:"id"`
 	CreatedAt    string                 `json:"created_at"`
@@ -67,6 +94,16 @@ type AddDSAChallengeRequestType struct {
 	SampleOutput string            `json:"sample_output"`
 	Note         *string           `json:"note"`
 	TestCases    []DSATestCaseType `json:"test_cases"`
+}
+
+type AddLinuxChallengeRequestType struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	TypeID      int     `json:"type_id"`
+	StatusID    int     `json:"status_id"`
+	Marks       int     `json:"marks"`
+	Note        *string `json:"note"`
+	Flag        string  `json:"flag"`
 }
 
 type DSATestCaseType struct {
@@ -162,5 +199,5 @@ type UserChallengeSubmissionType struct {
 
 type UserChallengeSubmissionsResponseType struct {
 	ChallengeID string                        `json:"challengeId"`
-	Submissions []UserChallengeSubmissionType  `json:"submissions"`
+	Submissions []UserChallengeSubmissionType `json:"submissions"`
 }

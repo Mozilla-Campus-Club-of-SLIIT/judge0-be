@@ -99,6 +99,24 @@ func ValidateAddDSAChallengeRequest(request types.AddDSAChallengeRequestType) er
 	return nil
 }
 
+func ValidateAddLinuxChallengeRequest(request types.AddLinuxChallengeRequestType) error {
+	if err := ValidateAddChallengeRequest(types.AddChallengeRequestType{
+		Title:       request.Title,
+		Description: request.Description,
+		TypeID:      request.TypeID,
+		StatusID:    request.StatusID,
+		Marks:       request.Marks,
+	}); err != nil {
+		return err
+	}
+	if strings.TrimSpace(request.Flag) == "" {
+		logger.Log.Warn("Validation failed: flag is required", "request", request)
+		return errors.New("flag is required")
+	}
+
+	return nil
+}
+
 func ValidateTestDSAChallengeRequest(request types.TestDSAChallengeRequestType) error {
 	if request.ChallengeID <= 0 {
 		logger.Log.Warn("Validation failed: challenge_id is required", "request", request)

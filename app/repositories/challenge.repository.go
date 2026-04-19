@@ -81,13 +81,13 @@ func GetLeaderboard(ctx context.Context, page, pageSize string) ([]types.Leaderb
 
 	ps, err := strconv.ParseInt(pageSize, 10, 64)
 	if err != nil || ps <= 0 {
-		logger.Log.Warn("Invalid pageSize, defaulting to 10", "input", pageSize, "error", err)
+		logger.Log.Warn("GetAllLinuxChallenges: invalid pageSize, defaulting to 10", "input", pageSize, "error", err)
 		ps = 10
 	}
 
 	p, err := strconv.ParseInt(page, 10, 64)
 	if err != nil || p <= 0 {
-		logger.Log.Warn("Invalid page, defaulting to 1", "input", page, "error", err)
+		logger.Log.Warn("GetAllLinuxChallenges: invalid page, defaulting to 1", "input", page, "error", err)
 		p = 1
 	}
 
@@ -411,6 +411,26 @@ func UpdateAllDSAChallengeStatuses(ctx context.Context, statusID int) (int64, er
 	return affected, nil
 }
 
+func UpdateAllLinuxChallengeStatuses(ctx context.Context, statusID int) (int64, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	cmdTag, err := pool.Exec(ctx,
+		"UPDATE challenges SET status_id = $1 WHERE type_id = 3",
+		statusID,
+	)
+	if err != nil {
+		logger.Log.Error("UpdateAllLinuxChallengeStatuses: update error", "status_id", statusID, "error", err)
+		return 0, err
+	}
+
+	affected := cmdTag.RowsAffected()
+	logger.Log.Info("All Linux challenge statuses updated", "status_id", statusID, "updated_count", affected)
+
+	return affected, nil
+}
+
 func GetMarksForChallenge(ctx context.Context, challengeId int) (int, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
@@ -522,6 +542,34 @@ func GetDSAChallenge(ctx context.Context, id string) (types.DSAChallengesType, e
 	return challenge, err
 }
 
+func GetLinuxChallenge(ctx context.Context, id string) (types.LinuxChallengesType, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var challenge types.LinuxChallengesType
+	err := pool.QueryRow(ctx,
+		`SELECT id, created_at, title, description, type_id, status_id, marks, type, status, note
+			FROM get_linux_challenges_view
+			WHERE id = $1`, id).Scan(
+		&challenge.ID,
+		&challenge.CreatedAt,
+		&challenge.Title,
+		&challenge.Description,
+		&challenge.TypeID,
+		&challenge.StatusID,
+		&challenge.Marks,
+		&challenge.Type,
+		&challenge.Status,
+		&challenge.Note,
+	)
+	if err != nil {
+		logger.Log.Error("GetLinuxChallenge error", "id", id, "error", err)
+	}
+
+	return challenge, err
+}
+
 func AddDSAChallenge(ctx context.Context, challenge types.AddDSAChallengeRequestType) (int, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
@@ -583,6 +631,55 @@ func AddDSAChallenge(ctx context.Context, challenge types.AddDSAChallengeRequest
 	}
 
 	logger.Log.Info("DSA Challenge added", "challenge_id", challengeID)
+	return challengeID, nil
+}
+
+func AddLinuxChallenge(ctx context.Context, challenge types.AddLinuxChallengeRequestType) (int, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		logger.Log.Error("AddLinuxChallenge: begin transaction error", "error", err)
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	var challengeID int
+	err = tx.QueryRow(ctx,
+		`INSERT INTO challenges (title, description, type_id, status_id, marks)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING id`,
+		challenge.Title,
+		challenge.Description,
+		challenge.TypeID,
+		challenge.StatusID,
+		challenge.Marks,
+	).Scan(&challengeID)
+	if err != nil {
+		logger.Log.Error("AddLinuxChallenge: insert challenge error", "error", err)
+		return 0, err
+	}
+
+	_, err = tx.Exec(ctx,
+		`INSERT INTO linux_challenges (challenge_id, note, flag)
+			VALUES ($1, $2, $3)`,
+		challengeID,
+		challenge.Note,
+		challenge.Flag,
+	)
+	if err != nil {
+		logger.Log.Error("AddLinuxChallenge: insert linux_challenge error", "error", err)
+		return 0, err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		logger.Log.Error("AddLinuxChallenge: commit error", "error", err)
+		return 0, err
+	}
+
+	logger.Log.Info("Linux Challenge added", "challenge_id", challengeID)
 	return challengeID, nil
 }
 
@@ -739,6 +836,83 @@ func GetAllDSAChallengesWithTestCases(ctx context.Context, page, pageSize string
 	}
 
 	logger.Log.Info("Fetched DSA challenges with test cases", "count", len(challenges), "page", p, "totalPages", totalPages)
+	return challenges, p, totalPages, nil
+}
+
+func GetAllLinuxChallenges(ctx context.Context, page, pageSize string) ([]types.AdminLinuxChallengesType, int64, int64, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	var count int64
+	err := pool.QueryRow(ctx,
+		"SELECT count(*) FROM get_linux_challenges_view",
+	).Scan(&count)
+	if err != nil {
+		logger.Log.Error("GetAllLinuxChallenges: count error", "error", err)
+		return nil, 0, 0, err
+	}
+
+	ps, err := strconv.ParseInt(pageSize, 10, 64)
+	if err != nil || ps <= 0 {
+		logger.Log.Warn("Invalid pageSize, defaulting to 10", "input", pageSize, "error", err)
+		ps = 10
+	}
+
+	p, err := strconv.ParseInt(page, 10, 64)
+	if err != nil || p <= 0 {
+		logger.Log.Warn("Invalid page, defaulting to 1", "input", page, "error", err)
+		p = 1
+	}
+
+	totalPages := (count + ps - 1) / ps
+	if p > totalPages && totalPages > 0 {
+		p = totalPages
+	}
+
+	offset := (p - 1) * ps
+
+	rows, err := pool.Query(ctx,
+		`SELECT id, created_at, title, description, type_id, status_id, marks, type, status, note, flag
+			FROM get_linux_challenges_view
+			ORDER BY id DESC
+			LIMIT $1 OFFSET $2`,
+		ps, offset,
+	)
+	if err != nil {
+		logger.Log.Error("GetAllLinuxChallenges: query error", "error", err)
+		return nil, 0, 0, err
+	}
+	defer rows.Close()
+
+	challenges := []types.AdminLinuxChallengesType{}
+	for rows.Next() {
+		var challenge types.AdminLinuxChallengesType
+		if err := rows.Scan(
+			&challenge.ID,
+			&challenge.CreatedAt,
+			&challenge.Title,
+			&challenge.Description,
+			&challenge.TypeID,
+			&challenge.StatusID,
+			&challenge.Marks,
+			&challenge.Type,
+			&challenge.Status,
+			&challenge.Note,
+			&challenge.Flag,
+		); err != nil {
+			logger.Log.Error("GetAllLinuxChallenges: scan error", "error", err)
+			return nil, 0, 0, err
+		}
+		challenges = append(challenges, challenge)
+	}
+
+	if err := rows.Err(); err != nil {
+		logger.Log.Error("GetAllLinuxChallenges: rows error", "error", err)
+		return nil, 0, 0, err
+	}
+
+	logger.Log.Info("Fetched Linux challenges", "count", len(challenges), "page", p, "totalPages", totalPages)
 	return challenges, p, totalPages, nil
 }
 
