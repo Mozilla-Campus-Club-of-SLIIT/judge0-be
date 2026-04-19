@@ -114,32 +114,12 @@ func AddChallengeHandler(c *gin.Context) {
 		return
 	}
 
-	if challenge.TypeID == 1 {
-		ctx := c.Request.Context()
-		var dsaChallenge types.AddDSAChallengeRequestType
-		if err := json.Unmarshal(body, &dsaChallenge); err != nil {
-			logger.Log.Warn("Invalid JSON in AddChallengeHandler (DSA)", "error", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
-			return
-		}
-		if err := utils.ValidateAddDSAChallengeRequest(dsaChallenge); err != nil {
-			logger.Log.Warn("Validation failed in AddChallengeHandler (DSA)", "error", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-
-		challengeID, err := repositories.AddDSAChallenge(ctx, dsaChallenge)
-		if err != nil {
-			logger.Log.Error("Failed to add DSA challenge", "error", err)
-			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-			return
-		}
-		logger.Log.Info("DSA challenge created successfully", "challenge_id", challengeID)
-
-		c.JSON(http.StatusCreated, gin.H{
-			"id":      challengeID,
-			"message": "DSA challenge created successfully",
-		})
+	switch challenge.TypeID {
+	case 1:
+		handleAddDSAChallenge(c, body)
+		return
+	case 3:
+		handleAddLinuxChallenge(c, body)
 		return
 	}
 
@@ -147,6 +127,62 @@ func AddChallengeHandler(c *gin.Context) {
 		"error": "Unsupported challenge type",
 	})
 	logger.Log.Warn("Unsupported challenge type in AddChallengeHandler", "type_id", challenge.TypeID)
+}
+
+func handleAddDSAChallenge(c *gin.Context, body []byte) {
+	ctx := c.Request.Context()
+	var dsaChallenge types.AddDSAChallengeRequestType
+	if err := json.Unmarshal(body, &dsaChallenge); err != nil {
+		logger.Log.Warn("Invalid JSON in AddChallengeHandler (DSA)", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+	if err := utils.ValidateAddDSAChallengeRequest(dsaChallenge); err != nil {
+		logger.Log.Warn("Validation failed in AddChallengeHandler (DSA)", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	challengeID, err := repositories.AddDSAChallenge(ctx, dsaChallenge)
+	if err != nil {
+		logger.Log.Error("Failed to add DSA challenge", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	logger.Log.Info("DSA challenge created successfully", "challenge_id", challengeID)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"id":      challengeID,
+		"message": "DSA challenge created successfully",
+	})
+}
+
+func handleAddLinuxChallenge(c *gin.Context, body []byte) {
+	ctx := c.Request.Context()
+	var linuxChallenge types.AddLinuxChallengeRequestType
+	if err := json.Unmarshal(body, &linuxChallenge); err != nil {
+		logger.Log.Warn("Invalid JSON in AddChallengeHandler (Linux)", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid JSON"})
+		return
+	}
+	if err := utils.ValidateAddLinuxChallengeRequest(linuxChallenge); err != nil {
+		logger.Log.Warn("Validation failed in AddChallengeHandler (Linux)", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	challengeID, err := repositories.AddLinuxChallenge(ctx, linuxChallenge)
+	if err != nil {
+		logger.Log.Error("Failed to add Linux challenge", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	logger.Log.Info("Linux challenge created successfully", "challenge_id", challengeID)
+
+	c.JSON(http.StatusCreated, gin.H{
+		"id":      challengeID,
+		"message": "Linux challenge created successfully",
+	})
 }
 
 func TestDSAChallengeHandler(c *gin.Context) {
@@ -363,4 +399,3 @@ func GetUserChallengeSubmissionsHandler(c *gin.Context) {
 		Submissions: submissions,
 	})
 }
-

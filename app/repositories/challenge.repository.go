@@ -518,6 +518,55 @@ func AddDSAChallenge(ctx context.Context, challenge types.AddDSAChallengeRequest
 	return challengeID, nil
 }
 
+func AddLinuxChallenge(ctx context.Context, challenge types.AddLinuxChallengeRequestType) (int, error) {
+	pool := database.GetPool()
+	ctx, cancel := utils.WithTimeout(ctx)
+	defer cancel()
+
+	tx, err := pool.Begin(ctx)
+	if err != nil {
+		logger.Log.Error("AddLinuxChallenge: begin transaction error", "error", err)
+		return 0, err
+	}
+	defer tx.Rollback(ctx)
+
+	var challengeID int
+	err = tx.QueryRow(ctx,
+		`INSERT INTO challenges (title, description, type_id, status_id, marks)
+			VALUES ($1, $2, $3, $4, $5)
+			RETURNING id`,
+		challenge.Title,
+		challenge.Description,
+		challenge.TypeID,
+		challenge.StatusID,
+		challenge.Marks,
+	).Scan(&challengeID)
+	if err != nil {
+		logger.Log.Error("AddLinuxChallenge: insert challenge error", "error", err)
+		return 0, err
+	}
+
+	_, err = tx.Exec(ctx,
+		`INSERT INTO linux_challenges (challenge_id, note, flag)
+			VALUES ($1, $2, $3)`,
+		challengeID,
+		challenge.Note,
+		challenge.Flag,
+	)
+	if err != nil {
+		logger.Log.Error("AddLinuxChallenge: insert linux_challenge error", "error", err)
+		return 0, err
+	}
+
+	if err = tx.Commit(ctx); err != nil {
+		logger.Log.Error("AddLinuxChallenge: commit error", "error", err)
+		return 0, err
+	}
+
+	logger.Log.Info("Linux Challenge added", "challenge_id", challengeID)
+	return challengeID, nil
+}
+
 func GetDSAChallengeTestCases(ctx context.Context, challengeID int) ([]types.DSAChallengeTestCase, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)

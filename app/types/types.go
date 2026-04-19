@@ -69,6 +69,16 @@ type AddDSAChallengeRequestType struct {
 	TestCases    []DSATestCaseType `json:"test_cases"`
 }
 
+type AddLinuxChallengeRequestType struct {
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	TypeID      int     `json:"type_id"`
+	StatusID    int     `json:"status_id"`
+	Marks       int     `json:"marks"`
+	Note        *string `json:"note"`
+	Flag        string  `json:"flag"`
+}
+
 type DSATestCaseType struct {
 	TestInput  string `json:"test_input"`
 	TestOutput string `json:"test_output"`
@@ -162,5 +172,5 @@ type UserChallengeSubmissionType struct {
 
 type UserChallengeSubmissionsResponseType struct {
 	ChallengeID string                        `json:"challengeId"`
-	Submissions []UserChallengeSubmissionType  `json:"submissions"`
+	Submissions []UserChallengeSubmissionType `json:"submissions"`
 }
