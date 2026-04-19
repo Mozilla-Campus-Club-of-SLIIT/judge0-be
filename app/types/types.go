@@ -54,6 +54,20 @@ type LinuxChallengesType struct {
 	Note        *string `json:"note"`
 }
 
+type AdminLinuxChallengesType struct {
+	ID          int     `json:"id"`
+	CreatedAt   string  `json:"created_at"`
+	Title       string  `json:"title"`
+	Description string  `json:"description"`
+	TypeID      int     `json:"type_id"`
+	StatusID    int     `json:"status_id"`
+	Marks       int     `json:"marks"`
+	Type        string  `json:"type"`
+	Status      string  `json:"status"`
+	Note        *string `json:"note"`
+	Flag        *string `json:"flag"`
+}
+
 type DSAChallengeWithTestCasesType struct {
 	ID           int                    `json:"id"`
 	CreatedAt    string                 `json:"created_at"`
