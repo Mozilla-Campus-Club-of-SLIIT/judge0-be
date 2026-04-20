@@ -15,6 +15,8 @@ import (
 
 const leaderboardFreezeSetting = "leaderboard_freeze"
 
+var ErrLinuxChallengeAlreadyPassed = errors.New("linux challenge already passed")
+
 var frozenLeaderboardUsers = []types.LeaderboardUserType{
 	{UserID: "mozilla-firefox", Name: "Firefox", XP: 100},
 	{UserID: "mozilla-thunderbird", Name: "Thunderbird", XP: 95},
@@ -1508,7 +1510,7 @@ func CheckLinuxSubmissionExists(ctx context.Context, userID, challengeID string)
 	err := pool.QueryRow(ctx,
 		`SELECT EXISTS(
 			SELECT 1 FROM linux_submissions 
-			WHERE user_id = $1 AND challenge_id = $2
+			WHERE user_id = $1 AND challenge_id = $2 AND is_pass = true
 		)`,
 		userID, challengeID).Scan(&exists)
 	if err != nil {
@@ -1533,12 +1535,40 @@ func SubmitLinuxChallenge(ctx context.Context, userID, challengeID string, isCor
 		_ = tx.Rollback(ctx)
 	}()
 
-	_, err = tx.Exec(ctx,
-		`INSERT INTO linux_submissions (user_id, challenge_id, is_pass)
-		 VALUES ($1, $2, $3)`,
-		userID, challengeID, isCorrect)
+	var hasPreviousSubmission bool
+	var alreadyPassed bool
+	err = tx.QueryRow(ctx,
+		`SELECT
+			EXISTS(SELECT 1 FROM linux_submissions WHERE user_id = $1 AND challenge_id = $2),
+			EXISTS(SELECT 1 FROM linux_submissions WHERE user_id = $1 AND challenge_id = $2 AND is_pass = true)`,
+		userID, challengeID,
+	).Scan(&hasPreviousSubmission, &alreadyPassed)
 	if err != nil {
-		logger.Log.Error("SubmitLinuxChallenge: failed to insert submission", "user_id", userID, "challenge_id", challengeID, "error", err)
+		logger.Log.Error("SubmitLinuxChallenge: failed to check existing submission", "user_id", userID, "challenge_id", challengeID, "error", err)
+		return err
+	}
+
+	if alreadyPassed {
+		logger.Log.Warn("SubmitLinuxChallenge: challenge already passed", "user_id", userID, "challenge_id", challengeID)
+		return ErrLinuxChallengeAlreadyPassed
+	}
+
+	if hasPreviousSubmission {
+		_, err = tx.Exec(ctx,
+			`UPDATE linux_submissions
+			 SET is_pass = $3
+			 WHERE user_id = $1 AND challenge_id = $2`,
+			userID, challengeID, isCorrect,
+		)
+	} else {
+		_, err = tx.Exec(ctx,
+			`INSERT INTO linux_submissions (user_id, challenge_id, is_pass)
+			 VALUES ($1, $2, $3)`,
+			userID, challengeID, isCorrect,
+		)
+	}
+	if err != nil {
+		logger.Log.Error("SubmitLinuxChallenge: failed to save submission", "user_id", userID, "challenge_id", challengeID, "error", err)
 		return err
 	}
 

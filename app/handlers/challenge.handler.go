@@ -443,7 +443,7 @@ func SubmitLinuxChallengeHandler(c *gin.Context) {
 	if alreadySubmitted {
 		c.JSON(http.StatusBadRequest, gin.H{
 			"is_correct": false,
-			"message":    "You have already submitted for this challenge",
+			"message":    "You have already completed this challenge",
 		})
 		return
 	}
@@ -455,10 +455,24 @@ func SubmitLinuxChallengeHandler(c *gin.Context) {
 		return
 	}
 
-	isCorrect := req.Flag == correctFlag
+	submittedFlag := strings.TrimSpace(req.Flag)
+	if submittedFlag == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Flag is required"})
+		return
+	}
+
+	isCorrect := submittedFlag == strings.TrimSpace(correctFlag)
 
 	err = repositories.SubmitLinuxChallenge(ctx, userID.(string), challengeIDStr, isCorrect, marks)
 	if err != nil {
+		if errors.Is(err, repositories.ErrLinuxChallengeAlreadyPassed) {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"is_correct": false,
+				"message":    "You have already completed this challenge",
+			})
+			return
+		}
+
 		logger.Log.Error("SubmitLinuxChallengeHandler: submit error", "user_id", userID, "challenge_id", challengeIDStr, "error", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to submit challenge"})
 		return
