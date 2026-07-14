@@ -5,7 +5,6 @@ import (
 	"sync"
 
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/logger"
-	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -26,13 +25,6 @@ func Get() *Config {
 }
 
 func load() {
-	if os.Getenv("VERCEL") == "" {
-		_ = godotenv.Load()
-		logger.Log.Info("loaded .env file")
-	} else {
-		logger.Log.Info("Running on Vercel, skipping .env file")
-	}
-
 	cfg = &Config{
 		Judge0API:         must("JUDGE0_API"),
 		PGURL:             must("PG_URL"),
