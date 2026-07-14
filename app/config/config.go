@@ -9,7 +9,6 @@ import (
 )
 
 type Config struct {
-	SecretKey         string
 	Judge0API         string
 	PGURL             string
 	AUTH_API          string
