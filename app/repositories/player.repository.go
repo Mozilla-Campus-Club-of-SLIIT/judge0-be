@@ -12,8 +12,6 @@ import (
 
 var ErrPlayerNotFound = errors.New("player not found")
 
-// GetAllPlayers returns every registered user with their current marks,
-// intended for a frontend player picker (no pagination needed for this use case).
 func GetAllPlayers(ctx context.Context) ([]types.PlayerType, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
@@ -50,8 +48,6 @@ func GetAllPlayers(ctx context.Context) ([]types.PlayerType, error) {
 	return players, nil
 }
 
-// AddMarksToPlayer adjusts a player's leaderboard marks by delta (positive or negative)
-// and returns the resulting total. It fails with ErrPlayerNotFound if the user doesn't exist.
 func AddMarksToPlayer(ctx context.Context, userID string, delta int) (int, error) {
 	pool := database.GetPool()
 	ctx, cancel := utils.WithTimeout(ctx)
