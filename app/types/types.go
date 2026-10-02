@@ -163,6 +163,17 @@ type LeaderboardUserType struct {
 	XP     int    `json:"xp"`
 }
 
+type PlayerType struct {
+	UserID string `json:"user_id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Marks  int    `json:"marks"`
+}
+
+type AddMarksRequestType struct {
+	Marks int `json:"marks"`
+}
+
 type DSASubmissionType struct {
 	ID               int    `json:"id"`
 	CreatedAt        string `json:"created_at"`
