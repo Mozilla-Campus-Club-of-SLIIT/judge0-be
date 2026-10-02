@@ -12,6 +12,8 @@ func AdminRoutes(r *gin.RouterGroup) {
 		challenge.GET("/submissions/dsa", middlewares.AuthMiddleware("Codenight host"), handlers.GetDSASubmissionResultsHandler)
 		challenge.GET("/dsa/challenges", middlewares.AuthMiddleware("Codenight host"), handlers.GetAllDSAChallengesHandler)
 		challenge.GET("/leaderboard/get", middlewares.AuthMiddleware("Codenight host"), handlers.GetLiveLeaderboardAdminHandler)
+		challenge.GET("/players", middlewares.AuthMiddleware("Codenight host"), handlers.GetAllPlayersHandler)
+		challenge.PATCH("/players/:user_id/marks", middlewares.AuthMiddleware("Codenight host"), handlers.AddMarksToPlayerHandler)
 		challenge.GET("/linux/challenges", middlewares.AuthMiddleware("Codenight host"), handlers.GetAllLinuxChallengesHandler)
 		challenge.PATCH("/leaderboard/toggle", middlewares.AuthMiddleware("Codenight host"), handlers.ToggleLeaderboardFreezeHandler)
 		challenge.PATCH("/challenges/:id/:status", middlewares.AuthMiddleware("Codenight host"), handlers.UpdateChallengeStatusHandler)

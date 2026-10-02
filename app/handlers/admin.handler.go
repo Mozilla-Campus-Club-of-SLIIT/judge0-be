@@ -1,11 +1,14 @@
 package handlers
 
 import (
+	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/logger"
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/repositories"
+	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/types"
 	"github.com/Mozilla-Campus-Club-of-SLIIT/judge0-be/app/utils"
 	"github.com/gin-gonic/gin"
 )
@@ -257,6 +260,67 @@ func GetJudge0SubmissionDetailsHandler(c *gin.Context) {
 	}
 
 	c.Data(http.StatusOK, "application/json", result)
+}
+
+func GetAllPlayersHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+
+	players, err := repositories.GetAllPlayers(ctx)
+	if err != nil {
+		logger.Log.Error("GetAllPlayersHandler: failed to get players", "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"players": players,
+	})
+}
+
+func AddMarksToPlayerHandler(c *gin.Context) {
+	ctx := c.Request.Context()
+	userID := c.Param("user_id")
+	if userID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "user_id is required"})
+		return
+	}
+
+	body, err := c.GetRawData()
+	if err != nil {
+		logger.Log.Warn("AddMarksToPlayerHandler: failed to read request body", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "cannot read body"})
+		return
+	}
+
+	var req types.AddMarksRequestType
+	if err := json.Unmarshal(body, &req); err != nil {
+		logger.Log.Warn("AddMarksToPlayerHandler: invalid JSON", "error", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid JSON"})
+		return
+	}
+
+	if req.Marks == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "marks must be a non-zero integer"})
+		return
+	}
+
+	total, err := repositories.AddMarksToPlayer(ctx, userID, req.Marks)
+	if err != nil {
+		if errors.Is(err, repositories.ErrPlayerNotFound) {
+			c.JSON(http.StatusNotFound, gin.H{"error": "player not found"})
+			return
+		}
+		logger.Log.Error("AddMarksToPlayerHandler: failed to add marks", "user_id", userID, "marks", req.Marks, "error", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Marks updated",
+		"user_id": userID,
+		"added":   req.Marks,
+		"marks":   total,
+	})
 }
 
 func ToggleLeaderboardFreezeHandler(c *gin.Context) {
